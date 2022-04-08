@@ -1,8 +1,7 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
 
-
-const Shift = mongoose.model("Shift", {
+const shiftSchema = mongoose.Schema({
     year: {
         type: Number
     },
@@ -64,5 +63,7 @@ const Shift = mongoose.model("Shift", {
         type: String
     }
 });
+
+const Shift = mongoose.model("Shift", shiftSchema);
 
 module.exports = Shift;

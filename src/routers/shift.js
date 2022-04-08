@@ -49,7 +49,7 @@ router.patch("/shifts/:id", async (req, res) => {
     /* code to validate properties to update, leaving it out now until later for more in-depth error handling */
     /* for now just note that any invalid properties are ignored by mongoose */
 
-    // const updates = Object.keys(req.body);
+    const updates = Object.keys(req.body);
     // const validUpdates = ["fName", "lName", "email", "password"];
     // const isValidOperation = updates.every((update) => validUpdates.includes(update));
 
@@ -59,11 +59,16 @@ router.patch("/shifts/:id", async (req, res) => {
 
 
     try {
-        const shift = await Shift.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+        // fetch shift from db
+        const shift = await Shift.findById(req.params.id);
 
         if(!shift) {
             return res.status(404).send("shift not found");
         }
+
+        // apply each update to shift and re-save in db.
+        updates.forEach((update) => shift[update] = req.body[update] );
+        await shift.save();
 
         res.status(200).send(shift);
     } catch (e) {
