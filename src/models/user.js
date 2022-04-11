@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const userSchema = mongoose.Schema({
     fName: {
@@ -37,10 +38,41 @@ const userSchema = mongoose.Schema({
                 throw new Error("don't use 'password' in your password");
             }      
         }
-    }   
+    },
+    tokens: [{
+        token: {
+            type: String,
+            required: true
+        }
+    }] 
 });
 
-// define user model function to handle login credential lookup.
+// this method will return object without sensitive data.
+// we are taking advantage of'toJSON' which will automatically get called by express
+// when sending off data to client. Express calls JSON.stringigy() which calls toJSON().
+// very elegant way to do this every time user object gets sent back to client.
+userSchema.methods.toJSON = function () {
+    const user = this;
+    const userObject = user.toObject();
+
+    delete userObject.password;
+    delete userObject.tokens;
+
+    return userObject;
+}
+
+// generate auth token
+userSchema.methods.generateAuthToken = async function () {
+    const user = this;
+    const token = jwt.sign({ _id: user._id.toString() }, "thisismysecret");
+
+    user.tokens.push({ token });
+    await user.save();
+
+    return token;
+};
+
+// define User Model function to handle login credential lookup.
 userSchema.statics.findByCredentials = async (email, password) => {
     const user = await User.findOne({ email });
 
