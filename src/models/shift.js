@@ -2,6 +2,11 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 
 const shiftSchema = mongoose.Schema({
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: "User"
+    },
     year: {
         type: Number
     },
@@ -62,6 +67,8 @@ const shiftSchema = mongoose.Schema({
     notes: {
         type: String
     }
+}, {
+    timestamps: true
 });
 
 const Shift = mongoose.model("Shift", shiftSchema);

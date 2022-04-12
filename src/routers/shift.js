@@ -1,40 +1,46 @@
 const express = require("express");
 const router = new express.Router();
 const Shift = require("../models/shift");
+const User = require("../models/user");
+const auth = require("../middleware/auth");
 
 
 /* create new shift */
-router.post("/shifts", async (req, res) => {
-    const newShift = new Shift(req.body);
+router.post("/shifts", auth, async (req, res) => {
+    const shift = new Shift({
+        ...req.body,
+        owner: req.user._id
+    });
 
     try {
-        await newShift.save();
-        res.status(201).send(newShift);
+        await shift.save();
+        res.status(201).send(shift);
     } catch (e) {
         res.status(400).send(e);
     }
 });
 
 /* read shifts */
-router.get("/shifts", async (req, res) => {
+router.get("/shifts", auth, async (req, res) => {
 
     try {
-        const shifts = await Shift.find({});
-        if (shifts.length === 0) {
+
+        await req.user.populate("shifts");
+        if (req.user.shifts.length === 0) {
             return res.status(404).send("no shifts found");
         }
-        res.status(200).send(shifts);
+        res.status(200).send(req.user.shifts);
     } catch (e) {
-        res.status(500).send(e);
+        res.status(500).send(e.toString());
     }
 });
 
 /* read specific shift */
-router.get("/shifts/:id", async (req, res) => {
+router.get("/shifts/:id", auth, async (req, res) => {
     const _id = req.params.id;
 
     try {
-        const shift = await Shift.findById(_id);
+        const shift = await Shift.findOne({ _id, owner: req.user._id });
         if (!shift) {
             return res.status(404).send("shift not found");
         }
@@ -45,7 +51,9 @@ router.get("/shifts/:id", async (req, res) => {
 });
 
 /* update shift */
-router.patch("/shifts/:id", async (req, res) => {
+router.patch("/shifts/:id", auth, async (req, res) => {
+    const _id = req.params.id;
+
     /* code to validate properties to update, leaving it out now until later for more in-depth error handling */
     /* for now just note that any invalid properties are ignored by mongoose */
 
@@ -60,7 +68,7 @@ router.patch("/shifts/:id", async (req, res) => {
 
     try {
         // fetch shift from db
-        const shift = await Shift.findById(req.params.id);
+        const shift = await Shift.findOne({ _id, owner: req.user._id });
 
         if(!shift) {
             return res.status(404).send("shift not found");
@@ -72,16 +80,16 @@ router.patch("/shifts/:id", async (req, res) => {
 
         res.status(200).send(shift);
     } catch (e) {
-        res.status(500).send(e);
+        res.status(500).send(e.toString());
     }
 });
 
 /* delete shift */
-router.delete("/shifts/:id", async (req, res) => {
+router.delete("/shifts/:id", auth, async (req, res) => {
     const _id = req.params.id;
 
     try {
-        const shift = await Shift.findByIdAndDelete(_id);
+        const shift = await Shift.findOneAndDelete({ _id, owner: req.user._id });
 
         if (!shift) {
             return res.status(404).send("shift not found");

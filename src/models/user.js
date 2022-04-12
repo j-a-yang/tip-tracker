@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const Shift = require("./shift");
 
 const userSchema = mongoose.Schema({
     fName: {
@@ -45,6 +46,14 @@ const userSchema = mongoose.Schema({
             required: true
         }
     }] 
+}, {
+    timestamps: true
+});
+
+userSchema.virtual('shifts', {
+    ref: "Shift",
+    localField: "_id",
+    foreignField: "owner"
 });
 
 // this method will return object without sensitive data.
@@ -90,13 +99,20 @@ userSchema.statics.findByCredentials = async (email, password) => {
 }
 
 // define middleware: hash the plaintext password before saving.
-userSchema.pre("save", async function(next) {
+userSchema.pre("save", async function (next) {
     const user = this // this is the document on hand.
 
     if (user.isModified("password")) {
         user.password = await bcrypt.hash(user.password, 8);
     }
 
+    next();
+});
+
+// delete all user shifts when user is removed.
+userSchema.pre("remove", async function (next) {
+    const user = this;
+    await Shift.deleteMany({ owner: user._id });
     next();
 });
 
